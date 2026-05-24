@@ -7,20 +7,22 @@ interface Props {
   results: StudentResult[];
   setResults: (res: StudentResult[]) => void;
   onRestart: () => void;
+  questionsCount?: number;
 }
 
-export function ResultsView({ results, setResults, onRestart }: Props) {
+export function ResultsView({ results, setResults, onRestart, questionsCount = 50 }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<{ id: string; score: number }>({ id: '', score: 0 });
 
   const exportExcel = () => {
+    const passingScore = questionsCount / 2;
     const data = results.map(r => ({
-      'Student ID': r.id,
+      'Student ID': String(r.id),
       'Name': r.name,
       'Church': r.church,
-      'Level': r.level,
-      'Score': r.score,
-      'Status': r.status,
+      'Level': r.level || 'N/A',
+      'Score': r.score !== undefined ? r.score : 0,
+      'Status': r.status !== 'success' ? 'تم التصحيح' : (r.score >= passingScore ? 'ناجح' : 'لم يجتز'),
     }));
     const sheet = xlsx.utils.json_to_sheet(data);
     const workbook = xlsx.utils.book_new();

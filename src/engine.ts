@@ -161,7 +161,7 @@ export async function processSinglePage(
         // n = Name, c = Church, l = Level
         result.name = studentData.n || studentData.name || '';
         result.church = studentData.c || studentData.church || '';
-        result.level = studentData.l || studentData.level || '';
+        result.level = studentData.l || studentData.level || studentData.stage || '';
       } catch (e) {
         // Not JSON, fallback to standard delimiters
         if (rawData.includes('-')) {

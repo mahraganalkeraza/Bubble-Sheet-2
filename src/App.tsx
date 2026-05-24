@@ -125,6 +125,7 @@ export default function App() {
                 setResults([]);
                 setPhase('upload');
               }}
+              questionsCount={questionsCount}
             />
           )}
         </div>
