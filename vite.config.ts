@@ -9,7 +9,7 @@ export default defineConfig(({mode}) => {
     base: './', // Forces relative pathing for production assets
     build: {
       outDir: 'dist',
-      assetsDir: 'assets',
+      assetsDir: '',
       emptyOutDir: true
     },
     plugins: [react(), tailwindcss()],
