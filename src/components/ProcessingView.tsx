@@ -7,13 +7,14 @@ interface Props {
   pdfFile: File;
   calibration: CalibrationData;
   questionsCount: number;
+  columnsCount: number;
   optionsCount: number;
   answerKey: Record<number, string>;
   onComplete: (results: StudentResult[]) => void;
 }
 
 export function ProcessingView({
-  pdfFile, calibration, questionsCount, optionsCount, answerKey, onComplete
+  pdfFile, calibration, questionsCount, columnsCount, optionsCount, answerKey, onComplete
 }: Props) {
   const [progress, setProgress] = useState({ current: 0, total: 100 });
   const [isProcessing, setIsProcessing] = useState(true);
@@ -40,7 +41,8 @@ export function ProcessingView({
             canvas, 
             calibration, 
             answerKey, 
-            questionsCount, 
+            questionsCount,
+            columnsCount,
             optionsCount
           );
           
@@ -67,7 +69,7 @@ export function ProcessingView({
     return () => {
       active = false;
     };
-  }, [pdfFile, calibration, answerKey, questionsCount, optionsCount, onComplete]);
+  }, [pdfFile, calibration, answerKey, questionsCount, columnsCount, optionsCount, onComplete]);
 
   const percentage = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
 

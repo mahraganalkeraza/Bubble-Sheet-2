@@ -35,6 +35,7 @@ export async function processSinglePage(
   calibration: CalibrationData, 
   answerKey: Record<number, string>,
   questionsCount: number,
+  columnsCount: number,
   optionsCount: number
 ): Promise<StudentResult> {
   
@@ -189,8 +190,10 @@ export async function processSinglePage(
   // 3. OMR Processing
   try {
     const N = questionsCount;
-    const rowHeight = warpedOmrBox.height / N;
-    const colWidth = warpedOmrBox.width;
+    const cols = columnsCount || 1;
+    const rowsPerCol = Math.ceil(N / cols);
+    const rowHeight = warpedOmrBox.height / rowsPerCol;
+    const colWidth = warpedOmrBox.width / cols;
     
     // Convert to grayscale & threshold for bubble detection
     let gray = new cv.Mat();
@@ -199,19 +202,27 @@ export async function processSinglePage(
     // Use adaptive thresholding or fixed
     cv.threshold(gray, thresh, 180, 255, cv.THRESH_BINARY_INV);
     
-    cv.imshow(warpedCanvas, thresh); // Temporary to get inverted binary pixels
-    const binCtx = warpedCanvas.getContext('2d')!;
+    const tempBinCanvas = document.createElement('canvas');
+    tempBinCanvas.width = WARP_W;
+    tempBinCanvas.height = WARP_H;
+    cv.imshow(tempBinCanvas, thresh);
+    const binCtx = tempBinCanvas.getContext('2d', { willReadFrequently: true })!;
     
     let totalScore = 0;
 
     for (let i = 0; i < N; i++) {
-      const qX = warpedOmrBox.x;
-      const qY = warpedOmrBox.y + (i * rowHeight);
+      const currentCol = Math.floor(i / rowsPerCol);
+      const currentRow = i % rowsPerCol;
+      
+      const qX = warpedOmrBox.x + (currentCol * colWidth);
+      const qY = warpedOmrBox.y + (currentRow * rowHeight);
       
       const optWidth = colWidth / (optionsCount + 1); // +1 because usually there's question number
       
       let maxDarkness = 0;
       let selectedOption = '';
+      let selectedBx = 0, selectedBy = 0, selectedBw = 0, selectedBh = 0;
+      let marksCount = 0;
       
       const options = Array.from({ length: optionsCount }).map((_, idx) => String.fromCharCode(65 + idx));
       
@@ -237,19 +248,79 @@ export async function processSinglePage(
         
         const density = whitePixels / (safeW * safeH);
         
-        if (density > maxDarkness && density > 0.3) { // 30% fill threshold
+        if (density > 0.3) { // 30% fill threshold
+          marksCount++;
+          if (density > maxDarkness) {
+            maxDarkness = density;
+            selectedOption = optChar;
+            selectedBx = safeX;
+            selectedBy = safeY;
+            selectedBw = safeW;
+            selectedBh = safeH;
+          }
+        } else if (density > maxDarkness && density > 0.15) {
           maxDarkness = density;
           selectedOption = optChar;
+          selectedBx = safeX;
+          selectedBy = safeY;
+          selectedBw = safeW;
+          selectedBh = safeH;
         }
       }
       
       const expected = answerKey[i + 1];
-      if (expected && selectedOption === expected) {
+      const isCorrect = expected && selectedOption === expected;
+      
+      if (isCorrect) {
         totalScore++;
+      }
+      
+      let diagnosticMsg = '';
+      if (marksCount === 0) {
+          if (selectedOption !== '') {
+             diagnosticMsg = `[Weak Shading Warning]`;
+          } else {
+             diagnosticMsg = `[Blank - No Mark Detected]`;
+          }
+      } else if (marksCount > 1) {
+          diagnosticMsg = `[Double Mark - Resolved to ${selectedOption}]`;
+      }
+
+      // Apply visual overlays onto the ORIGINAL warpedCtx
+      if (selectedOption !== '') {
+          warpedCtx.lineWidth = 6;
+          if (expected) {
+              if (isCorrect) {
+                  warpedCtx.strokeStyle = '#22c55e'; // Green
+                  warpedCtx.strokeRect(selectedBx, selectedBy, selectedBw, selectedBh);
+              } else {
+                  warpedCtx.strokeStyle = '#ef4444'; // Red
+                  // Draw X
+                  warpedCtx.beginPath();
+                  warpedCtx.moveTo(selectedBx, selectedBy);
+                  warpedCtx.lineTo(selectedBx + selectedBw, selectedBy + selectedBh);
+                  warpedCtx.moveTo(selectedBx + selectedBw, selectedBy);
+                  warpedCtx.lineTo(selectedBx, selectedBy + selectedBh);
+                  warpedCtx.stroke();
+                  warpedCtx.strokeRect(selectedBx, selectedBy, selectedBw, selectedBh);
+              }
+          } else {
+              warpedCtx.strokeStyle = '#3b82f6'; // Blue
+              warpedCtx.strokeRect(selectedBx, selectedBy, selectedBw, selectedBh);
+          }
+      }
+
+      if (diagnosticMsg) {
+          warpedCtx.font = "bold 48px monospace";
+          warpedCtx.fillStyle = "#ef4444";
+          warpedCtx.fillText(diagnosticMsg, qX + (optionsCount + 1) * optWidth + 20, qY + 60);
       }
     }
     
     result.score = totalScore;
+    
+    // Capture annotated image
+    result.pageImage = warpedCanvas.toDataURL('image/jpeg', 0.5);
     
     gray.delete();
     thresh.delete();

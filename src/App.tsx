@@ -35,6 +35,7 @@ export default function App() {
   });
 
   const [questionsCount, setQuestionsCount] = useState(50);
+  const [columnsCount, setColumnsCount] = useState(1);
   const [optionsCount, setOptionsCount] = useState(4); // 4 = A,B,C,D
   const [answerKey, setAnswerKey] = useState<Record<number, string>>({});
   
@@ -95,6 +96,8 @@ export default function App() {
             <AnswerKeyView 
               questionsCount={questionsCount}
               setQuestionsCount={setQuestionsCount}
+              columnsCount={columnsCount}
+              setColumnsCount={setColumnsCount}
               optionsCount={optionsCount}
               setOptionsCount={setOptionsCount}
               answerKey={answerKey}
@@ -108,6 +111,7 @@ export default function App() {
               pdfFile={pdfFile}
               calibration={calibration}
               questionsCount={questionsCount}
+              columnsCount={columnsCount}
               optionsCount={optionsCount}
               answerKey={answerKey}
               onComplete={(res) => {

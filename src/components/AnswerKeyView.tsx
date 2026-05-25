@@ -3,6 +3,8 @@ import React from 'react';
 interface Props {
   questionsCount: number;
   setQuestionsCount: (n: number) => void;
+  columnsCount: number;
+  setColumnsCount: (n: number) => void;
   optionsCount: number;
   setOptionsCount: (n: number) => void;
   answerKey: Record<number, string>;
@@ -14,6 +16,8 @@ interface Props {
 export function AnswerKeyView({
   questionsCount,
   setQuestionsCount,
+  columnsCount,
+  setColumnsCount,
   optionsCount,
   setOptionsCount,
   answerKey,
@@ -46,6 +50,17 @@ export function AnswerKeyView({
               className="border border-slate-300 rounded px-1 py-0.5 w-16 text-slate-900 font-sans"
               value={questionsCount}
               onChange={(e) => setQuestionsCount(parseInt(e.target.value) || 1)}
+            />
+          </label>
+          <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase">
+            Columns:
+            <input 
+              type="number" 
+              min={1} 
+              max={10}
+              className="border border-slate-300 rounded px-1 py-0.5 w-16 text-slate-900 font-sans"
+              value={columnsCount}
+              onChange={(e) => setColumnsCount(parseInt(e.target.value) || 1)}
             />
           </label>
           <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase">
