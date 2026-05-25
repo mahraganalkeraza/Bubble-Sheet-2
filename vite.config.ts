@@ -6,12 +6,11 @@ import {defineConfig, loadEnv} from 'vite';
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   return {
-    base: './',
+    base: './', // Forces relative pathing for production assets
     build: {
       outDir: 'dist',
       assetsDir: 'assets',
-      emptyOutDir: true,
-      sourcemap: false
+      emptyOutDir: true
     },
     plugins: [react(), tailwindcss()],
     define: {
