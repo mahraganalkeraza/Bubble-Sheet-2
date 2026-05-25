@@ -188,12 +188,9 @@ export async function processSinglePage(
 
   // 3. OMR Processing
   try {
-    // Generate grid based on omrBox
-    // We assume columns of questions. Say, 25 questions per column.
-    const questionsPerCol = 25;
-    const numCols = Math.ceil(questionsCount / questionsPerCol);
-    const colWidth = warpedOmrBox.width / numCols;
-    const rowHeight = warpedOmrBox.height / questionsPerCol;
+    const N = questionsCount;
+    const rowHeight = warpedOmrBox.height / N;
+    const colWidth = warpedOmrBox.width;
     
     // Convert to grayscale & threshold for bubble detection
     let gray = new cv.Mat();
@@ -207,24 +204,20 @@ export async function processSinglePage(
     
     let totalScore = 0;
 
-    for (let q = 0; q < questionsCount; q++) {
-      const col = Math.floor(q / questionsPerCol);
-      const row = q % questionsPerCol;
-      
-      const qX = warpedOmrBox.x + (col * colWidth);
-      const qY = warpedOmrBox.y + (row * rowHeight);
-
+    for (let i = 0; i < N; i++) {
+      const qX = warpedOmrBox.x;
+      const qY = warpedOmrBox.y + (i * rowHeight);
       
       const optWidth = colWidth / (optionsCount + 1); // +1 because usually there's question number
       
       let maxDarkness = 0;
       let selectedOption = '';
       
-      const options = Array.from({ length: optionsCount }).map((_, i) => String.fromCharCode(65 + i));
+      const options = Array.from({ length: optionsCount }).map((_, idx) => String.fromCharCode(65 + idx));
       
       for (let o = 0; o < optionsCount; o++) {
         const optChar = options[o];
-        const bx = qX + ((o + 1) * optWidth); // Shift right by 1 block to skin Q-number
+        const bx = qX + ((o + 1) * optWidth); // Shift right by 1 block to skip Q-number
         const by = qY;
         const bw = optWidth * 0.8; 
         const bh = rowHeight * 0.8;
@@ -250,7 +243,7 @@ export async function processSinglePage(
         }
       }
       
-      const expected = answerKey[q + 1];
+      const expected = answerKey[i + 1];
       if (expected && selectedOption === expected) {
         totalScore++;
       }
