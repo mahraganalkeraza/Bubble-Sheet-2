@@ -17,11 +17,13 @@ export default function App() {
   
   // Calibration data from localStorage or defaults
   const [calibration, setCalibration] = useState<CalibrationData>(() => {
-    const saved = localStorage.getItem('omr_calibration');
-    if (saved) {
-      try {
+    try {
+      const saved = localStorage.getItem('omr_calibration');
+      if (saved) {
         return JSON.parse(saved);
-      } catch (e) {}
+      }
+    } catch (e) {
+      console.warn('localStorage is not available', e);
     }
     // Defaults for a 1000x1414 space (approx A4 aspect ratio)
     return {
@@ -85,8 +87,12 @@ export default function App() {
               calibration={calibration}
               onCalibrationChange={setCalibration}
               onSaveDefault={() => {
-                localStorage.setItem('omr_calibration', JSON.stringify(calibration));
-                alert('Calibration saved as default.');
+                try {
+                  localStorage.setItem('omr_calibration', JSON.stringify(calibration));
+                  alert('Calibration saved as default.');
+                } catch (e) {
+                  alert('Failed to save calibration. Your browser may be blocking local storage.');
+                }
               }}
               onNext={() => setPhase('answer_key')}
               onBack={() => setPhase('upload')}
