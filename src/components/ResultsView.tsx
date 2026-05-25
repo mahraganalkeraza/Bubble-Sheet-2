@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import * as xlsx from 'xlsx';
 import { StudentResult } from '../types.ts';
-import { DownloadCloud, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { DownloadCloud, CheckCircle2, XCircle, AlertCircle, Undo } from 'lucide-react';
 
 interface Props {
   results: StudentResult[];
@@ -13,6 +13,8 @@ interface Props {
 export function ResultsView({ results, setResults, onRestart, questionsCount = 50 }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<{ id: string; score: number }>({ id: '', score: 0 });
+  const [history, setHistory] = useState<StudentResult[][]>([]);
+  const [filter, setFilter] = useState<'all' | 'success' | 'needs_review'>('all');
 
   const exportExcel = () => {
     const passingScore = questionsCount / 2;
@@ -36,6 +38,7 @@ export function ResultsView({ results, setResults, onRestart, questionsCount = 5
   };
 
   const saveEdit = (oldId: string) => {
+    setHistory([...history, results]);
     setResults(results.map(r => 
       r.id === oldId 
         ? { ...r, id: editForm.id, score: editForm.score, status: 'success' } // reset status on manual edit
@@ -44,13 +47,47 @@ export function ResultsView({ results, setResults, onRestart, questionsCount = 5
     setEditingId(null);
   };
 
+  const undo = () => {
+    if (history.length > 0) {
+      const prev = history[history.length - 1];
+      setHistory(history.slice(0, -1));
+      setResults(prev);
+    }
+  };
+
+  const filteredResults = results.filter(res => {
+    if (filter === 'all') return true;
+    if (filter === 'success') return res.status === 'success';
+    if (filter === 'needs_review') return res.status !== 'success';
+    return true;
+  });
+
   return (
     <div className="flex-1 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-full min-h-0">
       <div className="p-3 border-b border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
-        <div>
+        <div className="flex items-center gap-4">
           <h2 className="text-xs font-bold uppercase text-slate-500 tracking-wider">Live Results Feed <span className="text-slate-400 font-normal ml-2 tracking-normal lowercase">({results.length} processed)</span></h2>
+          <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
+            <span className="text-[10px] font-bold uppercase text-slate-400">Filter:</span>
+            <select
+              value={filter}
+              onChange={e => setFilter(e.target.value as 'all' | 'success' | 'needs_review')}
+              className="px-2 py-0.5 text-xs font-medium border border-slate-200 rounded text-slate-600 bg-white"
+            >
+              <option value="all">All</option>
+              <option value="success">Success</option>
+              <option value="needs_review">Needs Review</option>
+            </select>
+          </div>
         </div>
         <div className="flex gap-2">
+          <button 
+            onClick={undo}
+            disabled={history.length === 0}
+            className={`px-4 py-1.5 text-[10px] uppercase tracking-wide font-bold border rounded flex items-center gap-1 ${history.length === 0 ? 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed' : 'bg-white border-slate-300 hover:bg-slate-50 text-slate-600'}`}
+          >
+            <Undo className="w-3 h-3" /> Undo
+          </button>
           <button 
             onClick={onRestart}
             className="px-4 py-1.5 text-[10px] uppercase tracking-wide font-bold bg-white border border-slate-300 rounded hover:bg-slate-50 text-slate-600"
@@ -80,7 +117,7 @@ export function ResultsView({ results, setResults, onRestart, questionsCount = 5
             </tr>
           </thead>
           <tbody className="text-xs divide-y divide-slate-50">
-            {results.map((res, i) => (
+            {filteredResults.map((res, i) => (
               <tr key={i} className={`hover:bg-slate-50 transition-colors ${res.status.startsWith('failed') ? 'bg-red-50/30 hover:bg-red-50' : ''}`}>
                 <td className="p-3">
                   {res.status === 'success' && <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-[9px] font-bold uppercase">SUCCESS</span>}
@@ -147,7 +184,7 @@ export function ResultsView({ results, setResults, onRestart, questionsCount = 5
                 </td>
               </tr>
             ))}
-            {results.length === 0 && (
+            {filteredResults.length === 0 && (
               <tr>
                 <td colSpan={7} className="p-12 text-center text-slate-400 font-medium">
                   No results to display.
