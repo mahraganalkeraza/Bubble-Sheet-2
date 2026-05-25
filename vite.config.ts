@@ -10,7 +10,8 @@ export default defineConfig(({mode}) => {
     build: {
       outDir: 'dist',
       assetsDir: 'assets',
-      emptyOutDir: true
+      emptyOutDir: true,
+      sourcemap: false
     },
     plugins: [react(), tailwindcss()],
     define: {
